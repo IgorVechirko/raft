@@ -1340,7 +1340,7 @@ static int applyCommand(struct raft *r,
     struct raft_apply *req;
     void *result;
     int rv;
-    rv = r->fsm->apply(r->fsm, buf, &result);
+    rv = r->fsm->apply(r->fsm, buf, index, &result);
     if (rv != 0) {
         return rv;
     }
@@ -1569,19 +1569,35 @@ void replicationQuorum(struct raft *r, const raft_index index)
     // assert(logTermOf(&r->log, index) > 0);
     assert(logTermOf(&r->log, index) <= r->current_term);
 
+    size_t activeVotersCount = 0;
     for (i = 0; i < r->configuration.n; i++) {
         struct raft_server *server = &r->configuration.servers[i];
         if (server->role != RAFT_VOTER) {
             continue;
-        }
+        }   
+
+        if(r->io->server_active && r->io->server_active(r->io, server->id, server->address))
+            ++activeVotersCount;
+
         if (r->leader_state.progress[i].match_index >= index) {
             votes++;
         }
     }
 
-    if (votes > configurationVoterCount(&r->configuration) / 2) {
-        r->commit_index = index;
-        tracef("new commit index %llu", r->commit_index);
+    if(r->io->server_active)
+    {
+        if (votes == activeVotersCount &&
+            activeVotersCount > configurationVoterCount(&r->configuration) / 2) {
+            r->commit_index = index;
+            tracef("new commit index %llu, active voters %lu", r->commit_index, activeVotersCount);
+        }
+    }
+    else
+    {
+        if (votes > configurationVoterCount(&r->configuration) / 2) {
+            r->commit_index = index;
+            tracef("new commit index %llu, votes %lu", r->commit_index, votes);
+        }
     }
 
     return;

@@ -477,6 +477,11 @@ struct raft_io
                  raft_io_recv_cb recv);
     int (*bootstrap)(struct raft_io *io, const struct raft_configuration *conf);
     int (*recover)(struct raft_io *io, const struct raft_configuration *conf);
+    bool (*server_active)(struct raft_io *io, raft_id id, const char *address);
+    bool (*can_be_leader)(struct raft_io *io);
+    void (*state_changed)(struct raft_io *io,
+                          unsigned short new_state,
+                          raft_id leader_id);
     int (*set_term)(struct raft_io *io, raft_term term);
     int (*set_vote)(struct raft_io *io, raft_id server_id);
     int (*send)(struct raft_io *io,
@@ -507,11 +512,14 @@ struct raft_fsm
     void *data;
     int (*apply)(struct raft_fsm *fsm,
                  const struct raft_buffer *buf,
+                 raft_index entry_indx,
                  void **result);
     int (*snapshot)(struct raft_fsm *fsm,
                     struct raft_buffer *bufs[],
                     unsigned *n_bufs);
-    int (*restore)(struct raft_fsm *fsm, struct raft_buffer *buf);
+    int (*restore)(struct raft_fsm *fsm,
+                   struct raft_buffer *buf,
+                   raft_index snapshot_last_indx);
 };
 
 /**
@@ -993,6 +1001,29 @@ RAFT_API int raft_transfer(struct raft *r,
                            raft_id id,
                            raft_transfer_cb cb);
 
+/**
+ * Chek is current server can be the leader.
+ * 
+ * Return 0 if can be leader not zero otherwize.
+ */
+RAFT_API int can_be_leader(struct raft *r);
+
+/**
+ * Check is leadership conditions still valid.
+ * 
+ * Return RAFT_BADROLE if current server not leader
+ * Return RAFT_NOTLEADER if leadership conditions not valid
+ */
+RAFT_API int prove_leadership(struct raft *r);
+
+/**
+ * Forsibly resign leadership
+ * 
+ * Return RAFT_BADROLE if current server not leader
+ */
+RAFT_API int resign_leadership(struct raft *r);
+
+RAFT_API const struct raft_configuration* raft_get_server_config(struct raft* r);
 /**
  * User-definable dynamic memory allocation functions.
  *

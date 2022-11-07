@@ -29,6 +29,7 @@ static void convertSetState(struct raft *r, unsigned short new_state)
            (r->state == RAFT_FOLLOWER && new_state == RAFT_UNAVAILABLE) ||
            (r->state == RAFT_CANDIDATE && new_state == RAFT_UNAVAILABLE) ||
            (r->state == RAFT_LEADER && new_state == RAFT_UNAVAILABLE));
+
     r->state = new_state;
 }
 
@@ -170,11 +171,19 @@ int convertToCandidate(struct raft *r, bool disrupt_leader)
     }
 
     /* Start a new election round */
-    rv = electionStart(r);
-    if (rv != 0) {
-        r->state = RAFT_FOLLOWER;
-        raft_free(r->candidate_state.votes);
-        return rv;
+    if(!can_be_leader(r))
+    {
+        rv = electionStart(r);
+        if (rv != 0) {
+            r->state = RAFT_FOLLOWER;
+            raft_free(r->candidate_state.votes);
+            return rv;
+        }
+    }
+
+    if(r->io->state_changed)
+    {
+        r->io->state_changed(r->io, RAFT_CANDIDATE, 0);
     }
 
     return 0;
@@ -216,6 +225,11 @@ int convertToLeader(struct raft *r)
         rv = replicationApply(r);
     }
 
+    if(r->io->state_changed)
+    {
+        r->io->state_changed(r->io, RAFT_LEADER, 0);
+    }
+
     return rv;
 }
 
@@ -227,6 +241,11 @@ void convertToUnavailable(struct raft *r)
     }
     convertClear(r);
     convertSetState(r, RAFT_UNAVAILABLE);
+
+    if(r->io->state_changed)
+    {
+        r->io->state_changed(r->io, RAFT_UNAVAILABLE, 0);
+    }
 }
 
 #undef tracef

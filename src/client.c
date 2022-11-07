@@ -9,6 +9,7 @@
 #include "replication.h"
 #include "request.h"
 #include "tracing.h"
+#include "convert.h"
 
 #define tracef(...) Tracef(r->tracer, __VA_ARGS__)
 
@@ -31,6 +32,14 @@ int raft_apply(struct raft *r,
         rv = RAFT_NOTLEADER;
         ErrMsgFromCode(r->errmsg, rv);
         tracef("raft_apply not leader");
+        goto err;
+    }
+
+    if(prove_leadership(r))
+    {
+        convertToFollower(r);
+        
+        rv = RAFT_NOTLEADER;
         goto err;
     }
 
@@ -59,8 +68,15 @@ int raft_apply(struct raft *r,
 err_after_log_append:
     logDiscard(&r->log, index);
     QUEUE_REMOVE(&req->queue);
+
+    return rv;
 err:
-    assert(rv != 0);
+    //assert(rv != 0);
+    for(unsigned bufIdx = 0; bufIdx != n; ++bufIdx)
+    {
+        raft_free(bufs[bufIdx].base);
+    }
+
     return rv;
 }
 
@@ -195,14 +211,13 @@ int raft_add(struct raft *r,
     }
 
     req->cb = cb;
+    assert(r->leader_state.change == NULL);
+    r->leader_state.change = req;
 
     rv = clientChangeConfiguration(r, req, &configuration);
     if (rv != 0) {
         goto err_after_configuration_copy;
     }
-
-    assert(r->leader_state.change == NULL);
-    r->leader_state.change = req;
 
     return 0;
 
@@ -276,6 +291,8 @@ int raft_assign(struct raft *r,
     assert(r->leader_state.change == NULL);
     r->leader_state.change = req;
 
+    r->leader_state.promotee_id = server->id;
+
     /* If we are not promoting to the voter role or if the log of this server is
      * already up-to-date, we can submit the configuration change
      * immediately. */
@@ -293,8 +310,6 @@ int raft_assign(struct raft *r,
 
         return 0;
     }
-
-    r->leader_state.promotee_id = server->id;
 
     /* Initialize the first catch-up round. */
     r->leader_state.round_number = 1;

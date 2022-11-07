@@ -198,7 +198,13 @@ int recvUpdateLeader(struct raft *r, const raft_id id, const char *address)
 {
     assert(r->state == RAFT_FOLLOWER);
 
+    raft_id prevLeaderId = r->follower_state.current_leader.id;
     r->follower_state.current_leader.id = id;
+
+    if(r->io->state_changed && prevLeaderId != id)
+    {
+        r->io->state_changed(r->io, RAFT_FOLLOWER, r->follower_state.current_leader.id);
+    }
 
     /* If the address of the current leader is the same as the given one, we're
      * done. */

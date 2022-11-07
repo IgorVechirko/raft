@@ -18,7 +18,7 @@ struct followerOrCandidateState
 };
 
 /* Return a pointer to either the follower or candidate state. */
-struct followerOrCandidateState *getFollowerOrCandidateState(struct raft *r)
+static struct followerOrCandidateState *getFollowerOrCandidateState(struct raft *r)
 {
     struct followerOrCandidateState *state;
     assert(r->state == RAFT_FOLLOWER || r->state == RAFT_CANDIDATE);

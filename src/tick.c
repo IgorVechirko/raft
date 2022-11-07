@@ -7,6 +7,7 @@
 #include "progress.h"
 #include "replication.h"
 #include "tracing.h"
+#include "tick.h"
 
 #define tracef(...) Tracef(r->tracer, __VA_ARGS__)
 
@@ -68,7 +69,7 @@ static int tickCandidate(struct raft *r)
      *   happens, each candidate will time out and start a new election by
      *   incrementing its term and initiating another round of RequestVote RPCs
      */
-    if (electionTimerExpired(r)) {
+    if (electionTimerExpired(r) && !can_be_leader(r)) {
         tracef("start new election");
         return electionStart(r);
     }
