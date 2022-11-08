@@ -5,17 +5,6 @@
 
 #include "../include/raft.h"
 
-/* Convert from unavailable, or candidate or leader to follower.
- *
- * From Figure 3.1:
- *
- *   If election timeout elapses without receiving AppendEntries RPC from
- *   current leader or granting vote to candidate: convert to candidate.
- *
- * The above implies that we need to reset the election timer when converting to
- * follower. */
-void convertToFollower(struct raft *r);
-
 /* Convert from follower to candidate, starting a new election.
  *
  * From Figure 3.1:

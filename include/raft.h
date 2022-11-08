@@ -1058,6 +1058,19 @@ RAFT_API void raft_heap_set(struct raft_heap *heap);
  */
 RAFT_API void raft_heap_set_default(void);
 
+/* Convert from unavailable, or candidate or leader to follower.
+ *
+ * From Figure 3.1:
+ *
+ *   If election timeout elapses without receiving AppendEntries RPC from
+ *   current leader or granting vote to candidate: convert to candidate.
+ *
+ * The above implies that we need to reset the election timer when converting to
+ * follower. */
+
+RAFT_API void convertToFollower(struct raft *r);
+
+
 #undef RAFT__REQUEST
 
 #endif /* RAFT_H */
