@@ -301,6 +301,24 @@ bool electionTally(struct raft *r, size_t voter_index)
         }
     }
 
+    if(r->io->consider_active_voters_in_elect)
+    {
+        size_t active_voters = 0;
+        for(size_t srv_idx = 0; srv_idx < r->configuration.n; ++srv_idx)
+        {
+            struct raft_server* server = &r->configuration.servers[srv_idx];
+            if(server->role == RAFT_VOTER)
+            {
+                if(r->io->server_active && r->io->server_active(r->io, server->id, server->address))
+                {
+                    ++active_voters;
+                }
+            }
+        }
+
+        half = active_voters / 2;
+    }
+
     return votes >= half + 1;
 }
 

@@ -461,6 +461,7 @@ struct raft_io
     int version;
     void *data;
     void *impl;
+    bool consider_active_voters_in_elect;
     char errmsg[RAFT_ERRMSG_BUF_SIZE];
     int (*init)(struct raft_io *io, raft_id id, const char *address);
     void (*close)(struct raft_io *io, raft_io_close_cb cb);

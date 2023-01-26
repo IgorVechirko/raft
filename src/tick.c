@@ -70,8 +70,27 @@ static int tickCandidate(struct raft *r)
      *   incrementing its term and initiating another round of RequestVote RPCs
      */
     if (electionTimerExpired(r) && !can_be_leader(r)) {
-        tracef("start new election");
-        return electionStart(r);
+
+        if (electionTally(r, configurationIndexOfVoter(&r->configuration, r->id))) {
+            if (r->candidate_state.in_pre_vote) {
+                tracef("votes quorum reached -> pre-vote successful");
+                r->candidate_state.in_pre_vote = false;
+                return electionStart(r);
+            } else {
+                tracef("votes quorum reached -> convert to leader");
+                int rv = convertToLeader(r);
+                if (rv != 0) {
+                    return rv;
+                }
+                /* Send initial heartbeat. */
+                replicationHeartbeat(r);
+            }
+        }
+        else
+        {
+            tracef("start new election");
+            return electionStart(r);
+        }
     }
 
     return 0;
@@ -99,7 +118,27 @@ static bool checkContactQuorum(struct raft *r)
         }
     }
 
-    return contacts > configurationVoterCount(&r->configuration) / 2;
+    int half = configurationVoterCount(&r->configuration) / 2;
+
+    if(r->io->consider_active_voters_in_elect)
+    {
+        size_t active_voters = 0;
+        for(size_t srv_idx = 0; srv_idx < r->configuration.n; ++srv_idx)
+        {
+            struct raft_server* server = &r->configuration.servers[srv_idx];
+            if(server->role == RAFT_VOTER)
+            {
+                if(r->io->server_active && r->io->server_active(r->io, server->id, server->address))
+                {
+                    ++active_voters;
+                }
+            }
+        }
+
+        half = active_voters / 2;
+    }
+
+    return contacts > half;
 }
 
 /* Apply time-dependent rules for leaders (Figure 3.1). */
