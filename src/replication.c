@@ -1586,7 +1586,12 @@ void replicationQuorum(struct raft *r, const raft_index index)
 
     if(r->io->server_active)
     {
-        if (votes == activeVotersCount &&
+        if(r->io->consider_active_voters_in_elect &&
+            votes == activeVotersCount) {
+            r->commit_index = index;
+            tracef("new commit index %llu, active voters %lu", r->commit_index, activeVotersCount);
+        }
+        else if (votes == activeVotersCount &&
             activeVotersCount > configurationVoterCount(&r->configuration) / 2) {
             r->commit_index = index;
             tracef("new commit index %llu, active voters %lu", r->commit_index, activeVotersCount);
