@@ -479,6 +479,8 @@ struct raft_io
     int (*bootstrap)(struct raft_io *io, const struct raft_configuration *conf);
     int (*recover)(struct raft_io *io, const struct raft_configuration *conf);
     bool (*server_active)(struct raft_io *io, raft_id id, const char *address);
+    void (*receive_feedback_from_follower)(struct raft_io *io, raft_id id);
+    void (*heartbeat_cycle_finish)(struct raft_io *io);
     bool (*can_be_leader)(struct raft_io *io);
     void (*state_changed)(struct raft_io *io,
                           unsigned short new_state,
@@ -1024,7 +1026,19 @@ RAFT_API int prove_leadership(struct raft *r);
  */
 RAFT_API int resign_leadership(struct raft *r);
 
+/**
+ * Get current configuration
+*/
 RAFT_API const struct raft_configuration* raft_get_server_config(struct raft* r);
+
+/**
+ * Check if leader receive response to append request in current ping/append cycle.
+ * Return true if already received.
+ * It's posible that response will receive later, in thae case
+ * raft_io->receive_feedback_from_follower callback will be call
+*/
+RAFT_API bool raft_has_feedback_from_follower(struct raft* r, raft_id server);
+
 /**
  * User-definable dynamic memory allocation functions.
  *

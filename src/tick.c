@@ -156,7 +156,7 @@ static int tickLeader(struct raft *r)
      *   allows clients to retry their requests with another server.
      */
     if (now - r->election_timer_start >= r->election_timeout) {
-        if (!checkContactQuorum(r)) {
+        if (!checkContactQuorum(r) && !r->io->consider_active_voters_in_elect) {
             tracef("unable to contact majority of cluster -> step down");
             convertToFollower(r);
             return 0;

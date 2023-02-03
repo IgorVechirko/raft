@@ -674,6 +674,11 @@ int replicationUpdate(struct raft *r,
 
     progressMarkRecentRecv(r, i);
 
+    if(result->last_log_index == logLastIndex(&r->log))
+    {
+        r->io->receive_feedback_from_follower(r->io, server->id);
+    }
+
     /* If the RPC failed because of a log mismatch, retry.
      *
      * From Figure 3.1:

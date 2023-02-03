@@ -166,6 +166,8 @@ bool progressResetRecentRecv(struct raft *r, const unsigned i)
 {
     bool prev = r->leader_state.progress[i].recent_recv;
     r->leader_state.progress[i].recent_recv = false;
+
+    r->io->heartbeat_cycle_finish(r->io);
     return prev;
 }
 
@@ -296,6 +298,20 @@ bool progressSnapshotDone(struct raft *r, const unsigned i)
     struct raft_progress *p = &r->leader_state.progress[i];
     assert(p->state == PROGRESS__SNAPSHOT);
     return p->match_index >= p->snapshot_index;
+}
+
+RAFT_API bool raft_has_feedback_from_follower(struct raft* r, raft_id server)
+{
+    if(r->state != RAFT_LEADER)
+    {
+        return false;
+    }
+
+    unsigned int srvIndx = configurationIndexOfVoter(&r->configuration, server);
+    bool feedbackExist = progressGetRecentRecv(r, srvIndx);
+    bool logSame = r->leader_state.progress[srvIndx].match_index == logLastIndex(&r->log);
+
+    return feedbackExist && logSame;
 }
 
 #undef tracef
