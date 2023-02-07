@@ -118,11 +118,11 @@ static bool checkContactQuorum(struct raft *r)
         }
     }
 
-    int half = configurationVoterCount(&r->configuration) / 2;
+    unsigned int half = configurationVoterCount(&r->configuration) / 2;
 
     if(r->io->consider_active_voters_in_elect)
     {
-        size_t active_voters = 0;
+        unsigned int active_voters = 0;
         for(size_t srv_idx = 0; srv_idx < r->configuration.n; ++srv_idx)
         {
             struct raft_server* server = &r->configuration.servers[srv_idx];

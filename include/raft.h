@@ -34,6 +34,7 @@
 #define RAFT_UNAUTHORIZED 21 /* No access to a resource */
 #define RAFT_NOSPACE 22      /* Not enough space on disk */
 #define RAFT_TOOMANY 23      /* Some system or raft limit was hit */
+#define RAFT_SPLITBRAIN 23   /* Splitbrain happend*/
 
 /**
  * Size of human-readable error message buffers.
@@ -481,6 +482,7 @@ struct raft_io
     bool (*server_active)(struct raft_io *io, raft_id id, const char *address);
     void (*receive_feedback_from_follower)(struct raft_io *io, raft_id id);
     void (*heartbeat_cycle_finish)(struct raft_io *io);
+    void (*splitbrain_detected)(struct raft_io *io, raft_id server);
     bool (*can_be_leader)(struct raft_io *io);
     void (*state_changed)(struct raft_io *io,
                           unsigned short new_state,
@@ -687,6 +689,7 @@ struct raft
             raft_index round_index;         /* Target of the current round. */
             raft_time round_start;          /* Start of current round. */
             void *requests[2];              /* Outstanding client requests. */
+            bool splitbrain_detected;       /* Splitbrain was notified*/
         } leader_state;
     };
 

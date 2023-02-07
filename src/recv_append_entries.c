@@ -39,6 +39,22 @@ int recvAppendEntries(struct raft *r,
     result->rejected = args->prev_log_index;
     result->last_log_index = logLastIndex(&r->log);
 
+    /*
+    * It's not raft extension.
+    * It's allowing to detect and notify about splitbrain 
+    * case. Available only if we work with setted io flag consider_active_voters_in_elect.
+    */
+    if(r->io->consider_active_voters_in_elect && r->state == RAFT_LEADER)
+    {
+        if(!r->leader_state.splitbrain_detected)
+        {
+            r->leader_state.splitbrain_detected = true;
+            r->io->splitbrain_detected(r->io, id);
+        }
+
+        return RAFT_SPLITBRAIN;
+    }
+
     rv = recvEnsureMatchingTerms(r, args->term, &match);
     if (rv != 0) {
         return rv;

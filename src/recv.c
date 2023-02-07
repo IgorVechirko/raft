@@ -106,7 +106,7 @@ void recvCb(struct raft_io *io, struct raft_message *message)
         return;
     }
     rv = recvMessage(r, message);
-    if (rv != 0) {
+    if (rv != 0 && rv != RAFT_SPLITBRAIN) {
         convertToUnavailable(r);
     }
 }

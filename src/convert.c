@@ -215,6 +215,7 @@ int convertToLeader(struct raft *r)
     r->leader_state.round_number = 0;
     r->leader_state.round_index = 0;
     r->leader_state.round_start = 0;
+    r->leader_state.splitbrain_detected = false;
 
     /* By definition, all entries until the last_stored entry will be committed if
      * we are the only voter around. */

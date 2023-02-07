@@ -24,6 +24,7 @@
     X(RAFT_TOOBIG, "data is too big")                                   \
     X(RAFT_NOCONNECTION, "no connection to remote server available")    \
     X(RAFT_BUSY, "operation can't be performed at this time")           \
+    X(RAFT_SPLITBRAIN, "another leader exist in same configuration")    \
     X(RAFT_IOERR, "I/O error")
 
 /* Format an error message. */
