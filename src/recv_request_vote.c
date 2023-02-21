@@ -84,6 +84,12 @@ int recvRequestVote(struct raft *r,
         tracef("local term is higher -> reject ");
         goto reply;
     }
+    else if(match == 1)
+    {
+        tracef("local term is lower, update local term");
+        recvBumpCurrentTerm(r, args->term);
+        goto reply;
+    }
 
     /* Unless this is a pre-vote request, at this point our term must be the
      * same as the request term (otherwise we would have rejected the request or
