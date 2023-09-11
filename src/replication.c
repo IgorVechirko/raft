@@ -114,6 +114,12 @@ static int sendAppendEntries(struct raft *r,
     req->n = args->n_entries;
     req->server_id = server->id;
 
+    struct raft_progress *p = &r->leader_state.progress[i];
+    if(args->n_entries)
+        p->make_force_push_for_last_entry = true;
+    else
+        p->make_force_push_for_last_entry = false;
+
     req->send.data = req;
     rv = r->io->send(r->io, &req->send, &message, sendAppendEntriesCb);
     if (rv != 0) {
@@ -513,6 +519,18 @@ static void appendLeaderCb(struct raft_io_append *req, int status)
 
     /* Check if we can commit some new entries. */
     replicationQuorum(r, r->last_stored);
+
+    if(r->last_applied != r->commit_index)
+    {
+        for(unsigned int i = 0; i < r->configuration.n; i++)
+        {
+            struct raft_server* server = &(r->configuration.servers[i]);
+            if( server->id != r->id && server->role == RAFT_FOLLOWER)
+            {
+                r->leader_state.progress[i].make_force_push_for_last_entry = true;
+            }
+        }
+    }
 
     rv = replicationApply(r);
     if (rv != 0) {

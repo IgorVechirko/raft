@@ -544,6 +544,8 @@ struct raft_progress
     raft_time last_send;          /* Timestamp of last AppendEntries RPC. */
     raft_time snapshot_last_send; /* Timestamp of last InstallSnaphot RPC. */
     bool recent_recv;             /* A msg was received within election timeout. */
+    bool make_force_push_for_last_entry; /* Forcibly push another appen prc to commit all 
+                                            entries to FSM*/
 };
 
 struct raft; /* Forward declaration. */

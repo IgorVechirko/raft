@@ -22,6 +22,7 @@ static void initProgress(struct raft_progress *p, raft_index last_index)
     p->match_index = 0;
     p->snapshot_index = 0;
     p->last_send = 0;
+    p->make_force_push_for_last_entry = false;
     p->snapshot_last_send = 0;
     p->recent_recv = false;
     p->state = PROGRESS__PROBE;
@@ -105,7 +106,8 @@ bool progressShouldReplicate(struct raft *r, unsigned i)
 {
     struct raft_progress *p = &r->leader_state.progress[i];
     raft_time now = r->io->time(r->io);
-    bool needs_heartbeat = now - p->last_send >= r->heartbeat_timeout;
+    bool needs_heartbeat = (now - p->last_send >= r->heartbeat_timeout) || 
+                            p->make_force_push_for_last_entry;
     raft_index last_index = logLastIndex(&r->log);
     bool result = false;
 
