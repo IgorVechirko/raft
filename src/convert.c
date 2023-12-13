@@ -10,6 +10,7 @@
 #include "replication.h"
 #include "request.h"
 #include "tracing.h"
+#include "string.h"
 
 #define tracef(...) Tracef(r->tracer, __VA_ARGS__)
 
@@ -153,6 +154,8 @@ int convertToCandidate(struct raft *r, bool disrupt_leader)
 
     /* Allocate the votes array. */
     r->candidate_state.votes = raft_malloc(n_voters * sizeof(bool));
+    memset(r->candidate_state.votes, 0, n_voters * sizeof(bool));
+
     if (r->candidate_state.votes == NULL) {
         return RAFT_NOMEM;
     }

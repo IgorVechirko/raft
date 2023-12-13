@@ -78,7 +78,7 @@ RAFT_API int resign_leadership(struct raft *r)
     if(r->state != RAFT_LEADER)
         return RAFT_BADROLE;
 
-    convertToFollower(r);
+    convertToCandidate(r, false);
 
     return 0;
 }
