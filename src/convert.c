@@ -80,10 +80,6 @@ static void convertFailChange(struct raft_change *req)
 static void convertClearLeader(struct raft *r)
 {
     tracef("clear leader state");
-    if (r->leader_state.progress != NULL) {
-        raft_free(r->leader_state.progress);
-        r->leader_state.progress = NULL;
-    }
 
     /* Fail all outstanding requests */
     while (!QUEUE_IS_EMPTY(&r->leader_state.requests)) {
@@ -108,6 +104,11 @@ static void convertClearLeader(struct raft *r)
     if (r->leader_state.change != NULL) {
         convertFailChange(r->leader_state.change);
         r->leader_state.change = NULL;
+    }
+
+    if (r->leader_state.progress != NULL) {
+        raft_free(r->leader_state.progress);
+        r->leader_state.progress = NULL;
     }
 }
 
@@ -231,7 +232,7 @@ int convertToLeader(struct raft *r)
 
     if(r->io->state_changed)
     {
-        r->io->state_changed(r->io, RAFT_LEADER, 0);
+        r->io->state_changed(r->io, RAFT_LEADER, r->id);
     }
 
     return rv;
