@@ -118,8 +118,12 @@ reply:
 
     rv = r->io->send(r->io, req, &message, requestVoteSendCb);
     if (rv != 0) {
+        tracef("Can't respond to RAFT_IO_REQUEST_VOTE request");
+
         raft_free(req);
-        return rv;
+
+        //It's not a reason to resign leadership so return 0
+        return 0;
     }
 
     return 0;
