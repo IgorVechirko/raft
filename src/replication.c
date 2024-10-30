@@ -53,6 +53,9 @@ static void sendAppendEntriesCb(struct raft_io_send *send, const int status)
                    req->server_id, raft_strerror(status));
             /* Go back to probe mode. */
             progressToProbe(r, i);
+
+            replicationQuorum(r, r->last_stored);
+            replicationApply(r);
         }
     }
 
@@ -123,6 +126,9 @@ static int sendAppendEntries(struct raft *r,
     req->send.data = req;
     rv = r->io->send(r->io, &req->send, &message, sendAppendEntriesCb);
     if (rv != 0) {
+        replicationQuorum(r, r->last_stored);
+        replicationApply(r);
+        
         goto err_after_req_alloc;
     }
 
@@ -391,6 +397,9 @@ static int triggerAll(struct raft *r)
             /* This is not a critical failure, let's just log it. */
             tracef("failed to send append entries to server %llu: %s (%d)",
                    server->id, raft_strerror(rv), rv);
+            
+            replicationQuorum(r, r->last_stored);
+            replicationApply(r);
         }
     }
 
@@ -1618,6 +1627,10 @@ void replicationQuorum(struct raft *r, const raft_index index)
             activeVotersCount > configurationVoterCount(&r->configuration) / 2) {
             r->commit_index = index;
             tracef("new commit index %llu, active voters %lu", r->commit_index, activeVotersCount);
+        }
+        else
+        {
+            tracef("no commit index %llu, active voters %lu", r->commit_index, activeVotersCount);
         }
     }
     else
